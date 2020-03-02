@@ -1,0 +1,76 @@
+﻿@model theTestV2.Models.HomeIndexContainer
+
+<div class="row">
+    <div class="col-md-7">
+        <h2>Orders</h2>
+        <br />
+        <p align="right"><a class="btn btn-primary shipment_submit">Submit &raquo;</a></p>
+
+        @Html.Partial("~/Views/Partials/_PartialOrder.cshtml", Model.Orders)
+        <br />
+        <p align="right"><a class="btn btn-primary shipment_submit">Submit &raquo;</a></p>
+    </div>
+    <div class="col-md-5">
+        <h2>Shipments</h2>
+        <br />
+        <p align="right">&nbsp;</p>
+        <div id="my-partial-view">
+            @Html.Partial("/Views/Partials/_PartialShipments.cshtml", Model.Shipments)
+        </div>
+        <br />
+        <p align="right">&nbsp;</p>
+    </div>
+</div>
+
+<script src="~/Scripts/jquery-3.4.1.min.js"></script>
+<script>
+    $(function () {
+
+        $('.shipment_submit').click(function (e) {
+
+            var checked = [];
+            $.each($("input[name='shipment']:checked"), function(){
+                checked.push($(this).val());
+            });
+
+            var jsonOrder = {
+                "OrderIds": checked.join(",")
+            };
+
+            $.ajax({
+                url: "/home/shipment/",
+                type: "POST",
+                data: JSON.stringify(jsonOrder),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                complete: function (response, status) {
+                    $("#my-partial-view").html(response.responseText);
+                }
+            });
+
+        });
+
+
+    });
+
+    function callAPI(clickedButton) {
+
+        var jsonShipment = $(clickedButton).data('json');
+            
+        $.ajax({
+            url: "/orders/",
+            type: "POST",
+            data: JSON.stringify(jsonShipment),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            error: function (response) {
+                alert(response.responseText);
+            },
+            success: function (response) {
+                alert(response);
+            }
+        });
+
+    };
+
+</script>

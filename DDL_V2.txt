@@ -1,0 +1,124 @@
+
+-- Create a Database named [dbTest] on MSSQL
+
+-- Create Tables and Insert data with given file ( the_test.docx )
+
+-- Create a View
+
+CREATE OR ALTER VIEW [dbo].[v_order]
+AS
+  SELECT o.id AS OrderId
+       , o.FirstName
+       , o.LastName
+       , o.Address
+       , o.City
+       , o.State
+       , o.Country
+       , op.id AS OrderProductId
+       , op.Quantity
+       , op.Price
+       , op.Total
+       , p.id AS ProductId
+       , p.Name AS ProductName
+       , p.SKU
+       , p.Description
+       , c.id AS CategoryId
+       , c.Name AS CategoryName
+   FROM  dbo.TestOrders AS o 
+   LEFT OUTER JOIN dbo.TestOrderProducts AS op 
+     ON op.OrderId = o.id
+   LEFT OUTER JOIN dbo.TestProducts AS p
+     ON p.id = op.ProductId
+   LEFT OUTER JOIN dbo.TestProductCategories AS pc 
+     ON pc.ProductId = p.id 
+   LEFT OUTER JOIN dbo.TestCategories AS c 
+     ON c.id = pc.CategoryId
+GO
+
+
+-- Create Stored Procedures
+
+CREATE OR ALTER PROCEDURE [dbo].[sp_GetOrders]
+AS
+BEGIN
+	-- 
+	SET NOCOUNT ON;
+	--
+	SELECT  o.id AS OrderId
+			  , o.FirstName
+				, o.LastName
+				, o.Address
+				, o.City
+				, o.State
+				, o.Country				
+		FROM TestOrders o
+	 ORDER BY o.id;
+	--
+END
+GO
+
+
+
+-- Create Stored Procedures
+
+CREATE OR ALTER PROCEDURE [dbo].[sp_GetOrderProducts]
+	@ParOrderId int
+AS
+BEGIN
+	-- 
+	SET NOCOUNT ON;
+	--
+	SELECT  op.ProductId
+				, op.Quantity
+				, p.Name ProductName
+				, p.SKU
+				, c.Name CategoryName
+		FROM TestOrderProducts op 
+		LEFT JOIN TestProducts p
+		  ON p.id = op.ProductId
+	  LEFT JOIN TestProductCategories pc
+		  ON pc.ProductId = p.id
+		LEFT JOIN TestCategories c 
+		  ON c.id = pc.CategoryId
+   WHERE op.OrderId = @ParOrderId
+	 ORDER BY p.Name;
+	--
+END
+GO
+
+
+
+-- Create Stored Procedures
+
+CREATE OR ALTER PROCEDURE [dbo].[sp_GetShipments]
+	@ParOrderIds varchar(255)
+AS
+BEGIN
+	-- 
+	SET NOCOUNT ON;
+	--
+	SELECT b.OrderId_Agg OrderIds
+	     , a.FirstName
+	     , a.LastName
+	     , a.Address
+	     , a.City
+	     , a.State
+	     , a.Country
+			 , a.CategoryId
+	     , a.SKU
+			 , a.Quantity
+	  FROM v_order a 
+	  JOIN ( 
+			SELECT STRING_AGG( v.OrderId, ',' ) WITHIN GROUP (ORDER BY v.OrderId) OrderId_Agg 
+					 , v.CategoryId
+				FROM v_order v 
+			 WHERE ',' + @ParOrderIds + ',' LIKE '%,' + CAST( v.OrderId AS VARCHAR(20)) + ',%'
+			 GROUP BY v.Address, v.CategoryId
+		) b 
+	    ON ',' + b.OrderId_Agg + ',' LIKE '%,' + CAST( a.OrderId AS VARCHAR(20)) + ',%'
+	   AND b.CategoryId = a.CategoryId
+	 ORDER BY OrderIds, b.CategoryId, a.ProductId;
+
+END
+GO
+
